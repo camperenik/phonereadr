@@ -5,6 +5,14 @@ const LIGATURES = { 'ﬀ': 'ff', 'ﬁ': 'fi', 'ﬂ': 'fl', 'ﬃ': 'ffi', 'ﬄ': 
 const BULLET = /^([•▪◦●■□‣∙·*]|[-–—]\s|\(?\d{1,3}[.)]|\(?[a-zA-Z][.)])\s+/;
 const SENTENCE_END = /[.!?:;"”’')\]…]$/;
 
+// Join a line-end hyphen: drop it for a split word, keep it for reduplication (teman-temanku).
+function joinHyphen(prev, next) {
+  const w = (prev.match(/([A-Za-z]+)-$/) || [])[1] || '';
+  const n = (next.match(/^[A-Za-z]+/) || [''])[0];
+  const redup = w.length >= 3 && n.toLowerCase().startsWith(w.toLowerCase());
+  return redup ? prev + next : prev.slice(0, -1) + next;
+}
+
 const median = (xs) => {
   if (!xs.length) return 0;
   const s = [...xs].sort((a, b) => a - b);
@@ -185,7 +193,7 @@ export function buildBlocks(pages) {
         cur = { type: type === 'p' && BULLET.test(l.text) ? 'li' : type, text: l.text, page: l.page };
         blocks.push(cur);
       } else if (/[A-Za-z]-$/.test(cur.text) && /^[a-z]/.test(l.text)) {
-        cur.text = cur.text.slice(0, -1) + l.text;
+        cur.text = joinHyphen(cur.text, l.text);
       } else {
         cur.text += ' ' + l.text;
       }
@@ -199,7 +207,7 @@ export function buildBlocks(pages) {
     const last = out[out.length - 1];
     if (last && last.type === 'p' && b.type === 'p' && last.page !== b.page &&
         (!SENTENCE_END.test(last.text) || /[A-Za-z]-$/.test(last.text)) && /^[a-z(]/.test(b.text)) {
-      last.text = /[A-Za-z]-$/.test(last.text) ? last.text.slice(0, -1) + b.text : last.text + ' ' + b.text;
+      last.text = /[A-Za-z]-$/.test(last.text) ? joinHyphen(last.text, b.text) : last.text + ' ' + b.text;
     } else out.push({ ...b });
   }
   return out;
