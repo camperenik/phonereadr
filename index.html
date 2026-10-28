@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PhoneReadr">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#fbfaf7">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>PhoneReadr</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+
+<main id="home" class="view">
+  <header class="home-head">
+    <h1>PhoneReadr</h1>
+    <p>Open a PDF and read it at a size and layout that fits your phone.</p>
+  </header>
+  <label class="btn primary open">
+    Open a PDF
+    <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+  </label>
+  <div id="status" class="status" hidden></div>
+  <h2 class="section">Recent</h2>
+  <ul id="recent" class="recent"></ul>
+  <p id="empty" class="muted">Nothing yet. Files stay on this phone and work offline.</p>
+</main>
+
+<section id="reader" class="view" hidden>
+  <div id="topbar" class="bar top">
+    <button id="back" aria-label="Library">‹</button>
+    <div id="title" class="title"></div>
+    <button id="toc-btn" aria-label="Contents">☰</button>
+    <button id="orig-btn" aria-label="View original page">PDF</button>
+    <button id="aa-btn" aria-label="Text settings">Aa</button>
+  </div>
+  <article id="text" tabindex="-1"></article>
+  <div id="botbar" class="bar bottom">
+    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
+    <div id="pos" class="pos"></div>
+  </div>
+</section>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-body">
+    <div class="row"><span>Text size</span><div class="stepper"><button data-step="fontSize" data-d="-1">A−</button><b id="v-fontSize"></b><button data-step="fontSize" data-d="1">A+</button></div></div>
+    <div class="row"><span>Line spacing</span><div class="stepper"><button data-step="lineHeight" data-d="-0.05">−</button><b id="v-lineHeight"></b><button data-step="lineHeight" data-d="0.05">+</button></div></div>
+    <div class="row"><span>Margins</span><div class="stepper"><button data-step="margin" data-d="-2">−</button><b id="v-margin"></b><button data-step="margin" data-d="2">+</button></div></div>
+    <div class="row"><span>Paragraph gap</span><div class="stepper"><button data-step="paraGap" data-d="-0.1">−</button><b id="v-paraGap"></b><button data-step="paraGap" data-d="0.1">+</button></div></div>
+    <div class="row"><span>Font</span><div class="seg" data-key="font"><button data-v="serif">Serif</button><button data-v="sans">Sans</button><button data-v="rounded">Rounded</button></div></div>
+    <div class="row"><span>Theme</span><div class="seg" data-key="theme"><button data-v="light">Light</button><button data-v="sepia">Sepia</button><button data-v="dark">Dark</button></div></div>
+    <div class="row"><span>Align</span><div class="seg" data-key="align"><button data-v="left">Left</button><button data-v="justify">Justify</button></div></div>
+    <button id="sheet-close" class="btn">Done</button>
+  </div>
+</div>
+
+<div id="toc" class="sheet" hidden>
+  <div class="sheet-body"><h2 class="section">Contents</h2><ul id="toc-list" class="toc"></ul><button id="toc-close" class="btn">Close</button></div>
+</div>
+
+<div id="orig" class="orig" hidden>
+  <div class="bar top"><button id="orig-close">‹</button><div id="orig-title" class="title"></div>
+    <button id="orig-prev">←</button><button id="orig-next">→</button></div>
+  <div id="orig-scroll"><canvas id="orig-canvas"></canvas></div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
