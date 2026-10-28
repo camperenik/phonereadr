@@ -141,4 +141,66 @@ export async function parseEpub(buf) {
   return { blocks, pages: Math.max(section, 1), title };
 }
 
-export const FORMATS = { txt: parseTxt, docx: parseDocx, epub: parseEpub };
+
+const inlineMd = (t) => norm(t
+  .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+  .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+  .replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1')
+  .replace(/<[^>]+>/g, '')
+  .replace(/(\*\*|__)(.+?)\1/g, '$2')
+  .replace(/(^|[\s(])([*_])(?=\S)(.+?)(?<=\S)\2(?=$|[\s).,;:!?])/g, '$1$3')
+  .replace(/~~(.+?)~~/g, '$1')
+  .replace(/`([^`]+)`/g, '$1')
+  .replace(/\\([\\`*_{}\[\]()#+\-.!>|])/g, '$1'));
+
+export function parseMd(buf) {
+  let lines = decodeText(buf).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n');
+  if (lines[0] === '---') { // YAML front matter
+    const end = lines.indexOf('---', 1);
+    if (end > 0) lines = lines.slice(end + 1);
+  }
+  const blocks = [];
+  let section = 1;
+  let para = [];
+  const flush = () => {
+    if (para.length) blocks.push({ type: 'p', text: inlineMd(para.join(' ')), page: section });
+    para = [];
+  };
+  const push = (type, raw) => {
+    const text = inlineMd(raw);
+    if (text) blocks.push({ type, text, page: section });
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    if ((m = /^\s*(```|~~~)/.exec(line))) { // fenced code: keep as one block
+      flush();
+      const code = [];
+      for (i++; i < lines.length && !lines[i].trim().startsWith(m[1]); i++) code.push(lines[i].trim());
+      push('p', code.filter(Boolean).join(' '));
+    } else if (!line.trim()) flush();
+    else if ((m = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line))) {
+      flush();
+      if (m[1].length <= 2 && blocks.length) section++;
+      push(m[1].length === 1 ? 'h1' : m[1].length === 2 ? 'h2' : 'h3', m[2]);
+    } else if (para.length && /^\s{0,3}(=+|-+)\s*$/.test(line)) { // setext heading
+      const level = line.trim()[0] === '=' ? 'h1' : 'h2';
+      const text = para.join(' ');
+      para = [];
+      if (blocks.length) section++;
+      push(level, text);
+    } else if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(line)) flush();
+    else if ((m = /^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(.*)$/.exec(line))) { push('li', m[1]); para = []; }
+    else if (/^\s*\|/.test(line)) { // table row: header separator rows are dropped
+      flush();
+      if (!/^[\s|:-]+$/.test(line)) push('p', line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim()).filter(Boolean).join(' · '));
+    } else if (/^\s*>/.test(line)) para.push(line.replace(/^\s*(>\s?)+/, ''));
+    else if (para.length === 0 && /^\s+\S/.test(line) && blocks.at(-1)?.type === 'li') {
+      blocks.at(-1).text = norm(blocks.at(-1).text + ' ' + inlineMd(line)); // list continuation
+    } else para.push(line.trim());
+  }
+  flush();
+  return { blocks, pages: section };
+}
+
+export const FORMATS = { txt: parseTxt, md: parseMd, docx: parseDocx, epub: parseEpub };

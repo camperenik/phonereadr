@@ -64,7 +64,7 @@ function setStatus(msg) {
   $('status').textContent = msg || '';
 }
 
-const fmtOf = (f) => (/\.(txt|epub|docx)$/i.exec(f.name) || [])[1]?.toLowerCase() || 'pdf';
+const fmtOf = (f) => (/\.(txt|epub|docx|md|markdown)$/i.exec(f.name) || [])[1]?.toLowerCase().replace('markdown', 'md') || 'pdf';
 
 $('file').onchange = async (e) => {
   const f = e.target.files[0];
@@ -91,7 +91,7 @@ $('file').onchange = async (e) => {
       : 'Could not find any readable text in this file.') : '');
     const doc = {
       id: `${f.name}|${f.size}|${f.lastModified}`,
-      name: f.name.replace(/\.(pdf|txt|epub|docx)$/i, ''),
+      name: f.name.replace(/\.(pdf|txt|epub|docx|md|markdown)$/i, ''),
       format,
       pages,
       blob: format === 'pdf' ? new Blob([buf], { type: 'application/pdf' }) : null,
