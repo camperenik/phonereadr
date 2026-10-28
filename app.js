@@ -1,5 +1,6 @@
 import * as pdfjs from './vendor/pdf.min.mjs';
 import { extractBlocks } from './reflow.js';
+import { FORMATS } from './parsers.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
 
@@ -46,7 +47,7 @@ async function renderHome() {
     const pct = d.blocks.length ? Math.round((d.anchor / d.blocks.length) * 100) : 0;
     open.innerHTML = '<span class="name"></span><span class="meta"></span>';
     open.firstChild.textContent = d.name;
-    open.lastChild.textContent = `${d.pages} pages · ${pct}% read`;
+    open.lastChild.textContent = `${d.format === 'pdf' || !d.format ? d.pages + ' pages' : d.format.toUpperCase()} · ${pct}% read`;
     open.onclick = () => openDoc(d);
     const del = document.createElement('button');
     del.className = 'del';
@@ -63,6 +64,8 @@ function setStatus(msg) {
   $('status').textContent = msg || '';
 }
 
+const fmtOf = (f) => (/\.(txt|epub|docx)$/i.exec(f.name) || [])[1]?.toLowerCase() || 'pdf';
+
 $('file').onchange = async (e) => {
   const f = e.target.files[0];
   e.target.value = '';
@@ -70,17 +73,28 @@ $('file').onchange = async (e) => {
   try {
     setStatus('Reading ' + f.name + '…');
     const buf = await f.arrayBuffer();
-    const pdf = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
-    const blocks = await extractBlocks(pdf, (n, total) => setStatus(`Preparing text… page ${n} of ${total}`));
+    const format = fmtOf(f);
+    let blocks, pages;
+    if (format === 'pdf') {
+      const pdf = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
+      blocks = await extractBlocks(pdf, (n, total) => setStatus(`Preparing text… page ${n} of ${total}`));
+      pages = pdf.numPages;
+      pdf.destroy();
+    } else {
+      setStatus('Preparing text…');
+      ({ blocks, pages } = await FORMATS[format](buf.slice(0)));
+    }
     const chars = blocks.reduce((s, b) => s + b.text.length, 0);
-    if (chars < 50 * Math.min(pdf.numPages, 3)) {
-      setStatus('This PDF has almost no selectable text (it may be a scan). Use the PDF button inside the reader to view pages as images.');
-    } else setStatus('');
+    const empty = chars < 50 * Math.min(pages, 3);
+    setStatus(empty ? (format === 'pdf'
+      ? 'This PDF has almost no selectable text (it may be a scan).'
+      : 'Could not find any readable text in this file.') : '');
     const doc = {
       id: `${f.name}|${f.size}|${f.lastModified}`,
-      name: f.name.replace(/\.pdf$/i, ''),
-      pages: pdf.numPages,
-      blob: new Blob([buf], { type: 'application/pdf' }),
+      name: f.name.replace(/\.(pdf|txt|epub|docx)$/i, ''),
+      format,
+      pages,
+      blob: format === 'pdf' ? new Blob([buf], { type: 'application/pdf' }) : null,
       blocks,
       anchor: 0,
       opened: Date.now(),
@@ -88,8 +102,7 @@ $('file').onchange = async (e) => {
     const prev = await getDoc(doc.id);
     if (prev) doc.anchor = prev.anchor;
     await putDoc(doc);
-    pdf.destroy();
-    if (chars >= 50) openDoc(doc);
+    if (!empty) openDoc(doc);
     else renderHome();
   } catch (err) {
     console.error(err);
@@ -134,6 +147,7 @@ async function openDoc(doc) {
   $('home').hidden = true;
   $('reader').hidden = false;
   $('title').textContent = doc.name;
+  $('orig-btn').hidden = doc.format !== 'pdf' && !!doc.format;
   document.body.classList.remove('chrome-hidden');
   const frag = document.createDocumentFragment();
   els = doc.blocks.map((b) => {
@@ -159,7 +173,8 @@ function updatePos() {
   const frac = max > 0 ? Math.min(1, window.scrollY / max) : 0;
   $('seek').value = Math.round(frac * 1000);
   const page = current.blocks[i] ? current.blocks[i].page : 1;
-  $('pos').textContent = `Page ${page} of ${current.pages} · ${Math.round(frac * 100)}%`;
+  const unit = !current.format || current.format === 'pdf' ? 'Page' : current.format === 'epub' ? 'Chapter' : 'Section';
+  $('pos').textContent = current.format === 'txt' ? `${Math.round(frac * 100)}%` : `${unit} ${page} of ${current.pages} · ${Math.round(frac * 100)}%`;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => current && putDoc({ ...current }), 400);
 }
