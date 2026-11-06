@@ -1,0 +1,27 @@
+:root {
+  --bg: #111;
+  --fg: #eee;
+  --accent: #4f8cff;
+  --bar: #1c1c1e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; overscroll-behavior: none; }
+.home { min-height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 24px 16px; text-align: center; max-width: 480px; margin: 0 auto; }
+.home h1 { margin: 0; }
+.hint, .msg { opacity: .7; font-size: .9rem; margin: 0; }
+.btn { display: inline-block; padding: 14px 28px; border-radius: 12px; font-size: 1.1rem; background: #333; cursor: pointer; }
+.btn.primary { background: var(--accent); color: #fff; }
+.reader { height: 100%; display: flex; flex-direction: column; }
+.scroller { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; touch-action: pan-y pinch-zoom; background: #fff; }
+.scroller canvas { display: block; width: 100%; height: auto; }
+.bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); }
+.bar button { min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: #2c2c2e; color: var(--fg); font-size: 1.4rem; }
+.bar button.text { font-size: .85rem; padding: 0 10px; }
+.bar button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.bar .icon { font-size: 1rem; }
+.pager { flex: 1; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: .95rem; }
+.pager input { width: 4.2em; min-height: 40px; text-align: center; background: #2c2c2e; color: var(--fg); border: 0; border-radius: 8px; font-size: 1rem; }
+.status { position: fixed; top: 8px; right: 8px; font-size: .75rem; background: rgba(0,0,0,.65); padding: 4px 8px; border-radius: 8px; pointer-events: none; }
+.status:empty { display: none; }
