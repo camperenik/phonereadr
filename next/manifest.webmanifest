@@ -1,0 +1,1 @@
+{"name":"PhoneReadr","short_name":"PhoneReadr","description":"Pembaca PDF yang memotong margin tanpa mengubah layout.","start_url":"/phonereadr/next/","display":"standalone","background_color":"#111111","theme_color":"#111111","lang":"id","scope":"/phonereadr/next/","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
