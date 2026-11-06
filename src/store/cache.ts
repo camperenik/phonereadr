@@ -4,9 +4,16 @@ import type { RawBoxes } from '../crop/types';
 const DB = 'phonereadr-crop';
 const STORE = 'analysis';
 
+/** Ukuran halaman (lebar, tinggi) pada skala 1; undefined = belum diketahui. */
+export type PageSizes = ([number, number] | undefined)[];
+
+const ENTRY_VERSION = 2;
+
 export interface CachedAnalysis {
   id: string;
+  v: number;
   raw: RawBoxes;
+  sizes: PageSizes;
   total: number;
 }
 
@@ -24,7 +31,10 @@ export async function loadAnalysis(id: string): Promise<CachedAnalysis | undefin
     const db = await open();
     return await new Promise((resolve, reject) => {
       const r = db.transaction(STORE).objectStore(STORE).get(id);
-      r.onsuccess = () => resolve(r.result as CachedAnalysis | undefined);
+      r.onsuccess = () => {
+        const v = r.result as CachedAnalysis | undefined;
+        resolve(v && v.v === ENTRY_VERSION ? v : undefined);
+      };
       r.onerror = () => reject(r.error);
     });
   } catch {
@@ -32,12 +42,12 @@ export async function loadAnalysis(id: string): Promise<CachedAnalysis | undefin
   }
 }
 
-export async function saveAnalysis(entry: CachedAnalysis): Promise<void> {
+export async function saveAnalysis(entry: Omit<CachedAnalysis, 'v'>): Promise<void> {
   try {
     const db = await open();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(entry);
+      tx.objectStore(STORE).put({ ...entry, v: ENTRY_VERSION });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

@@ -16,7 +16,7 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 | Aspek | Keputusan |
 |---|---|
 | Platform | PWA, pdf.js, semua di browser |
-| Mode baca | Per halaman (swipe), lebar konten = lebar layar; scroll vertikal di dalam halaman jika lebih tinggi dari layar |
+| Mode baca | **Scroll vertikal kontinu**, lebar konten = lebar layar. Semua halaman bersambung; hanya halaman di sekitar layar yang dirender. (Mode per-halaman dengan swipe dicoba lalu diganti: swipe terasa bentrok dengan membaca halaman yang lebih tinggi dari layar.) |
 | Definisi margin | Warna latar dominan di tepi halaman (bukan hanya putih) |
 | Crop | Seragam per dokumen (ganjil/genap dipisah), tahan pencilan |
 | Header/footer | Toggle: **Aman** (dipertahankan) / **Agresif** (pita tipis di tepi diabaikan) |
@@ -49,21 +49,26 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 ### 2c. Zoom dan gestur (`src/zoom.ts`, `src/viewer.ts`)
 - **Pinch**: dua jari mengubah zoom 1×–5×; titik di antara jari tetap berada di bawah jari (sekaligus panning). Selama gestur, tampilan di-skala lewat CSS (instan); setelah jari diangkat halaman dirender ulang pada resolusi sebenarnya agar tajam. Zoom < 1,08 menempel ke 1×.
 - **Ketuk dua kali**: bergantian 1× ↔ 2,5× pada titik yang diketuk.
-- **Panning**: scroll bawaan browser (`touch-action: pan-x pan-y`, pinch bawaan browser dimatikan).
-- **Swipe pindah halaman**: aktif penuh pada 1×. Saat di-zoom, hanya jika gerakan dimulai dan berakhir di tepi yang sama (konten sudah mentok), sehingga tidak bentrok dengan panning.
-- Level zoom dipertahankan antar halaman; scroll kembali ke kiri-atas saat pindah halaman.
+- **Panning**: scroll bawaan browser (`touch-action: pan-x pan-y`, pinch bawaan browser dimatikan). Scroll vertikal melintasi halaman; saat di-zoom, scroll horizontal tersedia.
+- Zoom mengubah lebar semua halaman sekaligus lewat satu variabel CSS, jadi titik fokus tetap di bawah jari dan halaman aktif tidak berubah.
+- Level zoom dipertahankan saat berpindah halaman.
+- Waktu ketukan memakai `event.timeStamp` (waktu sentuhan sebenarnya), bukan waktu handler berjalan, agar double-tap tetap andal saat thread utama sibuk merender.
 - Desktop: Ctrl+scroll, serta tombol `+` / `-` / `0`.
 
-### 3. Render (`src/viewer.ts`)
-- Skala = lebar layar × DPR / lebar area crop; canvas dibatasi 16 juta piksel.
-- Render ke canvas luar layar, lalu disalin, agar tidak berkedip.
-- Navigasi: swipe horizontal, tombol, input nomor halaman, panah keyboard. Posisi terakhir tersimpan per dokumen.
+### 3. Render scroll kontinu (`src/viewer.ts`, `src/layout.ts`)
+- Setiap halaman punya kerangka (`.slot`) berukuran tepat dari rasio area crop (`aspect-ratio` CSS) dan lebar `--pw` (= lebar layar × zoom). Total tinggi dokumen dan posisi tiap halaman langsung diketahui, tanpa merender apa pun.
+- **Virtualisasi**: hanya halaman yang berada dalam ±1 tinggi layar (±0,3 saat di-zoom) yang dirender. Halaman di luar jangkauan dilepas (bitmap dikosongkan) dan total piksel kanvas dijaga ≤ 48 juta.
+- Antrean render berurutan, terdekat ke tengah layar lebih dulu; render halaman yang sudah keluar layar dibatalkan.
+- **Posisi baca stabil**: saat crop, ukuran halaman, mode, atau lebar berubah, titik acuan (halaman di tepi atas + fraksi yang terlewati) dipulihkan sehingga tampilan tidak melompat.
+- Ukuran halaman dipelajari dari analisis/render dan disimpan di cache; sebelum diketahui dipakai ukuran halaman 1.
+- Nomor halaman aktif = halaman pada 25% dari atas layar. Posisi terakhir tersimpan per dokumen.
+- Navigasi: scroll, tombol sebelumnya/berikutnya, input nomor halaman, panah kiri/kanan.
 - Tombol **Asli** menampilkan halaman tanpa crop sebagai pembanding.
 
 ## Penanganan file besar
 - `FileRangeTransport` (`src/pdf/loader.ts`) memberi pdf.js potongan `File.slice()` sesuai permintaan.
-- Hanya halaman yang dibaca dan halaman yang sedang dianalisis yang dirender; tidak ada render massal.
-- Terukur: PDF 405 MB / 300 halaman tampil dalam ~1,4 dtk dengan heap JS ~12 MB (Chromium headless, emulasi Pixel 7).
+- Hanya halaman di sekitar layar dan satu halaman yang sedang dianalisis yang dirender; tidak ada render massal.
+- Terukur (Chromium headless, emulasi Pixel 7): PDF 405 MB / 300 halaman, kanvas pertama tampil ~2,5 dtk; scroll cepat 40× tidak pernah menyisakan lebih dari 5 kanvas dan heap JS maksimum ~32 MB; lompat ke halaman 250 langsung terender.
 
 ## Batasan MVP yang diketahui
 - Zoom 1×–5×. Kanvas dibatasi 16 juta piksel, jadi pada zoom tinggi di halaman tinggi resolusinya turun (agak buram). Solusinya render per-tile (belum ada).
@@ -71,6 +76,8 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 - PDF scan: memakai deteksi piksel yang sama; scan miring, bayangan, atau tepi hitam scanner belum ditangani khusus.
 - PDF berproteksi sandi belum didukung.
 - Halaman pencilan menyebabkan skala teks berubah di halaman itu saja (konsekuensi dari "tidak memotong konten").
+- Pemisah antar halaman hanya garis tipis; pada dokumen yang halamannya hampir tanpa margin, batas halaman bisa kurang terlihat.
+- Sebelum seluruh halaman dianalisis, tinggi halaman bisa berubah sedikit (posisi baca dijaga, tapi total panjang scroll berubah).
 - Belum ada ekspor PDF ter-crop, penanda baca, atau pencarian teks.
 - Jalur cepat untuk PDF digital (bounding box dari operator list tanpa render) belum dibuat; deteksi piksel dipakai untuk semuanya.
 
@@ -83,5 +90,5 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 
 ## Pengujian
 - `npm test`: unit test deteksi (margin putih/berwarna/gelap, halaman kosong, Aman vs Agresif, gambar full-bleed) dan agregasi (pencilan, tidak pernah memotong konten, ganjil/genap, sampling).
-- `tests/zoom.test.ts`: matematika zoom, titik fokus, dan aturan swipe saat di-zoom.
-- Uji manual end-to-end dengan Playwright (emulasi HP) dilakukan selama pengembangan: crop, halaman pencilan, mode Agresif, Rapat, file 405 MB, dan gestur multi-touch (pinch, panning, swipe dari tepi, ketuk dua kali, pinch-in dijepit ke 1×).
+- `tests/zoom.test.ts`: matematika zoom dan titik fokus. `tests/layout.test.ts`: pencarian halaman dari posisi scroll.
+- Uji manual end-to-end dengan Playwright (emulasi HP) dilakukan selama pengembangan: crop, halaman pencilan, mode Agresif, Rapat, file 405 MB, dan scroll kontinu (scroll sentuh, lompat halaman, jumlah kanvas hidup, posisi baca stabil saat ganti mode), dan gestur multi-touch (pinch, ketuk dua kali).

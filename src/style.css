@@ -14,8 +14,10 @@ body { background: var(--bg); color: var(--fg); font-family: system-ui, sans-ser
 .btn { display: inline-block; padding: 14px 28px; border-radius: 12px; font-size: 1.1rem; background: #333; cursor: pointer; }
 .btn.primary { background: var(--accent); color: #fff; }
 .reader { height: 100%; display: flex; flex-direction: column; }
-.scroller { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; background: #1c1c1e; }
-.scroller canvas { display: block; max-width: none; height: auto; }
+.scroller { position: relative; flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; background: #1c1c1e; outline: none; }
+.pages { width: var(--pw, 100%); }
+.slot { position: relative; width: 100%; aspect-ratio: 1 / 1.414; background: #fff; margin-bottom: 2px; overflow: hidden; }
+.slot canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); }
 .bar button { min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: #2c2c2e; color: var(--fg); font-size: 1.4rem; }
 .bar button.text { font-size: .8rem; padding: 0 8px; min-width: 0; }

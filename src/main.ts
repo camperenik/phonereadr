@@ -17,7 +17,7 @@ const homeHtml = `
 
 const readerHtml = (name: string) => `
   <div class="reader">
-    <div id="scroller" class="scroller"><canvas id="page"></canvas></div>
+    <div id="scroller" class="scroller"><div id="pages" class="pages"></div></div>
     <div class="bar" role="toolbar" aria-label="Kontrol baca">
       <button id="close" class="icon" aria-label="Tutup dokumen" title="${name}">✕</button>
       <button id="prev" aria-label="Halaman sebelumnya">‹</button>

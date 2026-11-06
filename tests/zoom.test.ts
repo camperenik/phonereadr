@@ -5,7 +5,6 @@ import {
   pinchZoom,
   scrollForFocal,
   snapZoom,
-  swipeDirection,
 } from '../src/zoom';
 
 describe('zoom', () => {
@@ -35,26 +34,5 @@ describe('scrollForFocal', () => {
     expect(scrollForFocal(0, 300, 1200, 400)).toBe(0);
     expect(scrollForFocal(1, 0, 1200, 400)).toBe(800);
     expect(scrollForFocal(0.5, 0, 300, 400)).toBe(0);
-  });
-});
-
-describe('swipeDirection', () => {
-  const none = { left: false, right: false };
-  it('zoom 1x: swipe horizontal pindah halaman', () => {
-    expect(swipeDirection({ dx: -100, dy: 10, zoom: 1, startEdge: none, endEdge: none })).toBe('next');
-    expect(swipeDirection({ dx: 100, dy: 10, zoom: 1, startEdge: none, endEdge: none })).toBe('prev');
-  });
-  it('gerakan vertikal atau pendek diabaikan', () => {
-    expect(swipeDirection({ dx: -100, dy: 200, zoom: 1, startEdge: none, endEdge: none })).toBeNull();
-    expect(swipeDirection({ dx: -30, dy: 0, zoom: 1, startEdge: none, endEdge: none })).toBeNull();
-  });
-  it('saat di-zoom, hanya pindah halaman jika mentok di tepi', () => {
-    const atLeft = { left: true, right: false };
-    const atRight = { left: false, right: true };
-    expect(swipeDirection({ dx: 100, dy: 0, zoom: 2.5, startEdge: none, endEdge: none })).toBeNull();
-    expect(swipeDirection({ dx: 100, dy: 0, zoom: 2.5, startEdge: atLeft, endEdge: atLeft })).toBe('prev');
-    expect(swipeDirection({ dx: -100, dy: 0, zoom: 2.5, startEdge: atRight, endEdge: atRight })).toBe('next');
-    // mulai di tengah lalu panning sampai tepi: tidak boleh pindah halaman
-    expect(swipeDirection({ dx: 100, dy: 0, zoom: 2.5, startEdge: none, endEdge: atLeft })).toBeNull();
   });
 });

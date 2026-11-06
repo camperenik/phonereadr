@@ -34,32 +34,3 @@ export function scrollForFocal(
   const max = Math.max(0, contentSize - viewportSize);
   return Math.min(max, Math.max(0, fraction * contentSize - point));
 }
-
-export interface SwipeInput {
-  dx: number;
-  dy: number;
-  zoom: number;
-  /** Posisi scroll horizontal saat sentuhan dimulai / berakhir. */
-  startEdge: Edge;
-  endEdge: Edge;
-}
-export interface Edge {
-  left: boolean;
-  right: boolean;
-}
-
-/**
- * Menentukan apakah swipe horizontal harus pindah halaman.
- * Saat di-zoom, swipe hanya pindah halaman jika gerakan dimulai dan berakhir di
- * tepi yang sama (konten sudah mentok), sehingga tidak bentrok dengan panning.
- */
-export function swipeDirection(i: SwipeInput): 'prev' | 'next' | null {
-  if (Math.abs(i.dx) < 60 || Math.abs(i.dx) < Math.abs(i.dy) * 1.5) return null;
-  const zoomed = i.zoom > 1.02;
-  if (i.dx > 0) {
-    if (zoomed && !(i.startEdge.left && i.endEdge.left)) return null;
-    return 'prev';
-  }
-  if (zoomed && !(i.startEdge.right && i.endEdge.right)) return null;
-  return 'next';
-}

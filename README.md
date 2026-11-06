@@ -21,7 +21,7 @@ npm run preview    # coba hasil build
 - `src/crop/` — deteksi kotak konten dan agregasi crop (logika murni, teruji)
 - `src/pdf/` — pemuatan PDF per-range dan analisis halaman
 - `src/store/` — cache analisis (IndexedDB) dan preferensi
-- `src/viewer.ts` — render ber-crop, navigasi swipe, mode Aman/Agresif
+- `src/viewer.ts` — scroll kontinu ber-crop (virtualisasi halaman), zoom/gestur, mode Aman/Agresif/Rapat
 
 ## Deploy (GitHub Pages)
 

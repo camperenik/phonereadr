@@ -2,6 +2,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { detectContentBox } from '../crop/detect';
 import { samplePageIndices } from '../crop/aggregate';
 import type { Box, RawBoxes } from '../crop/types';
+import type { PageSizes } from '../store/cache';
 
 const ANALYSIS_WIDTH = 420;
 
@@ -18,6 +19,7 @@ export interface AnalysisProgress {
 export async function analyzeDocument(
   doc: PDFDocumentProxy,
   raw: RawBoxes,
+  sizes: PageSizes,
   opts: {
     signal: AbortSignal;
     onPage: (index: number, progress: AnalysisProgress) => void;
@@ -35,10 +37,11 @@ export async function analyzeDocument(
 
   for (const i of order) {
     if (opts.signal.aborted) return;
-    const boxes = await analyzePage(doc, i, canvas, ctx);
+    const res = await analyzePage(doc, i, canvas, ctx);
     if (opts.signal.aborted) return;
-    raw.safe[i] = boxes.safe;
-    raw.aggressive[i] = boxes.aggressive;
+    raw.safe[i] = res.boxes.safe;
+    raw.aggressive[i] = res.boxes.aggressive;
+    sizes[i] = res.size;
     seen.add(i);
     opts.onPage(i, { done: seen.size, total });
     // beri napas ke thread UI antar halaman
@@ -51,7 +54,7 @@ async function analyzePage(
   index: number,
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
-): Promise<Record<'safe' | 'aggressive', Box | null>> {
+): Promise<{ boxes: Record<'safe' | 'aggressive', Box | null>; size: [number, number] }> {
   const page = await doc.getPage(index + 1);
   try {
     const base = page.getViewport({ scale: 1 });
@@ -63,8 +66,11 @@ async function analyzePage(
     await page.render({ canvas, canvasContext: ctx, viewport, background: '#ffffff' }).promise;
     const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return {
-      safe: detectContentBox(img.data, img.width, img.height, 'safe'),
-      aggressive: detectContentBox(img.data, img.width, img.height, 'aggressive'),
+      boxes: {
+        safe: detectContentBox(img.data, img.width, img.height, 'safe'),
+        aggressive: detectContentBox(img.data, img.width, img.height, 'aggressive'),
+      },
+      size: [base.width, base.height],
     };
   } finally {
     page.cleanup();
