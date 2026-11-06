@@ -1,6 +1,7 @@
 import type { RawBoxes } from '../crop/types';
 
-const DB = 'phonereadr';
+// Nama berbeda dari aplikasi PhoneReadr lama yang berbagi origin yang sama.
+const DB = 'phonereadr-crop';
 const STORE = 'analysis';
 
 export interface CachedAnalysis {
