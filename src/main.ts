@@ -31,6 +31,7 @@ const readerHtml = (name: string) => `
       <button id="original" class="text" aria-pressed="false">Asli</button>
     </div>
     <div id="status" class="status" role="status"></div>
+    <div id="zoomhint" class="status hint-zoom" aria-live="polite"></div>
   </div>`;
 
 function showHome(message = ''): void {

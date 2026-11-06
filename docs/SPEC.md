@@ -46,6 +46,14 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 - **Bergantung pada mode**: di mode Aman, footer dihitung sebagai konten sehingga batas bawah tetap di footer dan Rapat nyaris tidak berefek. Gunakan bersama mode Agresif (footer diabaikan). Contoh pada dokumen uji: halaman cover 636 → 205 px, halaman 5 636 → 524 px.
 - Padding deteksi ~0,6% (min. 2 px) menjaga baris anti-alias tipis pada teks kecil agar tidak terpotong.
 
+### 2c. Zoom dan gestur (`src/zoom.ts`, `src/viewer.ts`)
+- **Pinch**: dua jari mengubah zoom 1×–5×; titik di antara jari tetap berada di bawah jari (sekaligus panning). Selama gestur, tampilan di-skala lewat CSS (instan); setelah jari diangkat halaman dirender ulang pada resolusi sebenarnya agar tajam. Zoom < 1,08 menempel ke 1×.
+- **Ketuk dua kali**: bergantian 1× ↔ 2,5× pada titik yang diketuk.
+- **Panning**: scroll bawaan browser (`touch-action: pan-x pan-y`, pinch bawaan browser dimatikan).
+- **Swipe pindah halaman**: aktif penuh pada 1×. Saat di-zoom, hanya jika gerakan dimulai dan berakhir di tepi yang sama (konten sudah mentok), sehingga tidak bentrok dengan panning.
+- Level zoom dipertahankan antar halaman; scroll kembali ke kiri-atas saat pindah halaman.
+- Desktop: Ctrl+scroll, serta tombol `+` / `-` / `0`.
+
 ### 3. Render (`src/viewer.ts`)
 - Skala = lebar layar × DPR / lebar area crop; canvas dibatasi 16 juta piksel.
 - Render ke canvas luar layar, lalu disalin, agar tidak berkedip.
@@ -58,7 +66,8 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 - Terukur: PDF 405 MB / 300 halaman tampil dalam ~1,4 dtk dengan heap JS ~12 MB (Chromium headless, emulasi Pixel 7).
 
 ## Batasan MVP yang diketahui
-- Pinch-zoom kustom belum ada (zoom bawaan browser tetap bisa dipakai, tapi gestur swipe bisa bentrok saat zoom).
+- Zoom 1×–5×. Kanvas dibatasi 16 juta piksel, jadi pada zoom tinggi di halaman tinggi resolusinya turun (agak buram). Solusinya render per-tile (belum ada).
+- Gestur diuji lewat Chromium headless (multi-touch via CDP); belum diuji di iOS Safari maupun HP sungguhan.
 - PDF scan: memakai deteksi piksel yang sama; scan miring, bayangan, atau tepi hitam scanner belum ditangani khusus.
 - PDF berproteksi sandi belum didukung.
 - Halaman pencilan menyebabkan skala teks berubah di halaman itu saja (konsekuensi dari "tidak memotong konten").
@@ -66,12 +75,13 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 - Jalur cepat untuk PDF digital (bounding box dari operator list tanpa render) belum dibuat; deteksi piksel dipakai untuk semuanya.
 
 ## Peta jalan
-1. **MVP (ini):** viewer, crop otomatis seragam, toggle Aman/Agresif, cache, PWA.
-2. Pinch-zoom dan penanganan gestur; penyesuaian crop manual per halaman/rentang.
+1. **MVP (ini):** viewer, crop otomatis seragam, toggle Aman/Agresif, Rapat, pinch-zoom, cache, PWA.
+2. Render per-tile untuk zoom tinggi; penyesuaian crop manual per halaman/rentang.
 3. Penanganan scan: deskew, abaikan tepi gelap scanner, ambang adaptif.
 4. Ekspor PDF ter-crop (ubah CropBox lewat pdf-lib, tetap vektor dan bisa dicari).
 5. Daftar bacaan terbaru, penanda baca, tema gelap/invert, buka lewat file handler PWA.
 
 ## Pengujian
 - `npm test`: unit test deteksi (margin putih/berwarna/gelap, halaman kosong, Aman vs Agresif, gambar full-bleed) dan agregasi (pencilan, tidak pernah memotong konten, ganjil/genap, sampling).
-- Uji manual end-to-end dengan Playwright (emulasi HP) dilakukan selama pengembangan: crop, halaman pencilan, mode Agresif, file 405 MB.
+- `tests/zoom.test.ts`: matematika zoom, titik fokus, dan aturan swipe saat di-zoom.
+- Uji manual end-to-end dengan Playwright (emulasi HP) dilakukan selama pengembangan: crop, halaman pencilan, mode Agresif, Rapat, file 405 MB, dan gestur multi-touch (pinch, panning, swipe dari tepi, ketuk dua kali, pinch-in dijepit ke 1×).
