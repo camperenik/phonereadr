@@ -9,29 +9,31 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       workbox: {
-        // Aset pdf.js (font/cmap/wasm) di-cache saat dipakai, bukan di-precache.
-        globPatterns: ['**/*.{js,css,html,svg,mjs}'],
-        globIgnores: ['pdfjs/**'],
+        // Semua aset (termasuk font/cmap/wasm pdf.js, ±4 MB) di-precache agar
+        // aplikasi dan semua jenis PDF bisa dibuka sepenuhnya offline setelah dipasang.
+        globPatterns: ['**/*.{js,css,html,svg,png,mjs,wasm,bcmap,pfb,ttf,icc,webmanifest}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.includes('/pdfjs/'),
-            handler: 'CacheFirst',
-            options: { cacheName: 'pdfjs-assets', expiration: { maxEntries: 400 } },
-          },
-        ],
+        navigateFallback: 'index.html',
       },
       manifest: {
-        name: 'PhoneReadr',
-        short_name: 'PhoneReadr',
+        id: process.env.BASE_PATH ?? '/',
+        name: 'PhoneReadr Crop',
+        short_name: 'Readr Crop',
         description: 'Pembaca PDF yang memotong margin tanpa mengubah layout.',
         lang: 'id',
         display: 'standalone',
+        orientation: 'any',
         background_color: '#111111',
         theme_color: '#111111',
-        icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+        categories: ['books', 'productivity'],
+        icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        ],
       },
     }),
   ],
