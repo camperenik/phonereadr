@@ -1,1 +1,0 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/phonereadr/next/sw.js', { scope: '/phonereadr/next/' })})}
