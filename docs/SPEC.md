@@ -22,6 +22,7 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 | Header/footer | Toggle: **Aman** (dipertahankan) / **Agresif** (pita tipis di tepi diabaikan) |
 | Jenis PDF | Digital dan scan, lewat deteksi berbasis piksel yang sama |
 | Analisis | Sampel 24 halaman tersebar dulu, sisanya di latar belakang; cache di IndexedDB |
+| Sisa kosong di bawah | Toggle **Rapat**: batas bawah mengikuti konten halaman itu sendiri; sisi lain tetap seragam |
 | Output | Viewer saja (ekspor PDF ter-crop: pasca-MVP) |
 
 ## Algoritma crop
@@ -38,6 +39,12 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 - Crop seragam per grup (ganjil/genap) memakai kuantil ke-10/90 pada tiap sisi, sehingga beberapa pencilan tidak melebarkan crop seluruh dokumen. Sampel < 5 halaman memakai gabungan penuh.
 - Halaman yang kontennya melewati crop seragam memakai **union** dengan kotaknya sendiri → konten tidak pernah terpotong; hanya halaman pencilan itu yang tampil sedikit lebih kecil.
 - Halaman kosong atau belum dianalisis memakai crop seragam grupnya.
+
+### 2b. Opsi Rapat (`trimBottom`)
+- Batas bawah tiap halaman = bawah konten halaman itu (tidak pernah memotong konten). Kiri, kanan, dan atas tetap seragam sehingga skala teks stabil.
+- Halaman pendek (cover, akhir bab) jadi lebih rendah; sisa layar diisi latar gelap sebagai penanda akhir halaman.
+- **Bergantung pada mode**: di mode Aman, footer dihitung sebagai konten sehingga batas bawah tetap di footer dan Rapat nyaris tidak berefek. Gunakan bersama mode Agresif (footer diabaikan). Contoh pada dokumen uji: halaman cover 636 → 205 px, halaman 5 636 → 524 px.
+- Padding deteksi ~0,6% (min. 2 px) menjaga baris anti-alias tipis pada teks kecil agar tidak terpotong.
 
 ### 3. Render (`src/viewer.ts`)
 - Skala = lebar layar × DPR / lebar area crop; canvas dibatasi 16 juta piksel.

@@ -27,6 +27,7 @@ const readerHtml = (name: string) => `
       </span>
       <button id="next" aria-label="Halaman berikutnya">›</button>
       <button id="mode" class="text">Aman</button>
+      <button id="trim" class="text" aria-pressed="false" title="Potong sisa kosong di bawah halaman">Rapat</button>
       <button id="original" class="text" aria-pressed="false">Asli</button>
     </div>
     <div id="status" class="status" role="status"></div>

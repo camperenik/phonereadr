@@ -50,6 +50,28 @@ describe('computeCrops', () => {
     expect(crops[1]!.left).toBeCloseTo(0.08);
   });
 
+  it('trimBottom memotong sisa kosong di bawah tanpa memotong konten', () => {
+    const boxes: Box[] = Array.from({ length: 20 }, (_, i) => ({
+      left: 0.1,
+      top: 0.1,
+      right: 0.9,
+      bottom: i === 0 ? 0.4 : 0.9, // halaman 1 pendek (cover)
+    }));
+    const crops = computeCrops(boxes, { trimBottom: true });
+    expect(crops[0]!.bottom).toBeCloseTo(0.4);
+    expect(crops[1]!.bottom).toBeCloseTo(0.9);
+    // sisi lain tetap seragam
+    expect(crops[0]!.left).toBeCloseTo(0.1);
+    expect(crops[0]!.right).toBeCloseTo(0.9);
+    boxes.forEach((b, i) => expect(crops[i]!.bottom).toBeGreaterThanOrEqual(b.bottom));
+  });
+
+  it('trimBottom: halaman tanpa deteksi memakai crop seragam', () => {
+    const boxes: (Box | null)[] = Array.from({ length: 10 }, () => normal);
+    boxes[2] = null;
+    expect(computeCrops(boxes, { trimBottom: true })[2]).toEqual(normal);
+  });
+
   it('semua halaman kosong -> halaman penuh', () => {
     expect(computeCrops([null, null])[0]).toEqual({ left: 0, top: 0, right: 1, bottom: 1 });
   });

@@ -5,6 +5,11 @@ export interface AggregateOptions {
   percentile?: number;
   /** Hitung crop terpisah untuk halaman ganjil dan genap (margin dalam buku). */
   splitParity?: boolean;
+  /**
+   * Potong sisa kosong di bawah: batas bawah tiap halaman mengikuti konten halaman
+   * itu sendiri (bukan crop seragam). Sisi lain tetap seragam agar skala stabil.
+   */
+  trimBottom?: boolean;
 }
 
 export const FULL_PAGE: Box = { left: 0, top: 0, right: 1, bottom: 1 };
@@ -17,6 +22,7 @@ export const FULL_PAGE: Box = { left: 0, top: 0, right: 1, bottom: 1 };
  * 2. Halaman yang kontennya melewati crop seragam dikembalikan ke gabungan
  *    (union) dengan kotaknya sendiri, jadi tidak ada konten yang pernah terpotong.
  * 3. Halaman kosong / belum terdeteksi memakai crop seragam grupnya.
+ * 4. Opsional `trimBottom`: batas bawah mengikuti konten halaman itu sendiri.
  */
 export function computeCrops(
   boxes: ReadonlyArray<Box | null | undefined>,
@@ -34,7 +40,9 @@ export function computeCrops(
 
   return boxes.map((own, i) => {
     const base = uniform[groupOf(i)]!;
-    return own ? union(base, own) : base;
+    if (!own) return base;
+    const merged = union(base, own);
+    return opts.trimBottom ? { ...merged, bottom: own.bottom } : merged;
   });
 }
 

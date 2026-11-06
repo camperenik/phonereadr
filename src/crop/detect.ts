@@ -60,12 +60,15 @@ export function detectContentBox(
     if (left < 0 || right < 0) return null;
   }
 
-  // Padding 1 piksel supaya kuantisasi resolusi rendah tidak memotong anti-alias.
+  // Padding ~0,6% (min. 2 piksel) agar baris anti-alias tipis di tepi teks kecil
+  // (yang lolos di bawah ambang penyaring bintik) tidak ikut terpotong.
+  const padX = Math.max(2, Math.round(width * 0.006));
+  const padY = Math.max(2, Math.round(height * 0.006));
   return {
-    left: Math.max(0, left - 1) / width,
-    top: Math.max(0, top - 1) / height,
-    right: Math.min(width, right + 2) / width,
-    bottom: Math.min(height, bottom + 2) / height,
+    left: Math.max(0, left - padX) / width,
+    top: Math.max(0, top - padY) / height,
+    right: Math.min(width, right + 1 + padX) / width,
+    bottom: Math.min(height, bottom + 1 + padY) / height,
   };
 }
 

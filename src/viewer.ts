@@ -13,6 +13,7 @@ export class Viewer {
   private page = 0;
   private mode: CropMode;
   private original = false;
+  private trim: boolean;
   private renderTask: RenderTask | null = null;
   private renderToken = 0;
   private abort = new AbortController();
@@ -35,6 +36,7 @@ export class Viewer {
     this.pageInput = this.q('#page-input');
     this.pageTotal = this.q('#page-total');
     this.mode = getPref<CropMode>('mode', 'safe');
+    this.trim = getPref<boolean>('trim', false);
     this.page = Math.min(doc.numPages - 1, Math.max(0, getPref<number>(`page:${id}`, 0)));
   }
 
@@ -88,7 +90,10 @@ export class Viewer {
   }
 
   private recompute(): void {
-    this.crops = computeCrops(this.raw[this.mode], { splitParity: this.doc.numPages > 4 });
+    this.crops = computeCrops(this.raw[this.mode], {
+      splitParity: this.doc.numPages > 4,
+      trimBottom: this.trim,
+    });
   }
 
   private updateStatus(done: number, total: number): void {
@@ -194,6 +199,16 @@ export class Viewer {
     modeBtn.addEventListener('click', () => {
       this.setMode(this.mode === 'safe' ? 'aggressive' : 'safe');
       paintMode();
+    });
+
+    const trimBtn = this.q<HTMLButtonElement>('#trim');
+    trimBtn.setAttribute('aria-pressed', String(this.trim));
+    trimBtn.addEventListener('click', () => {
+      this.trim = !this.trim;
+      setPref('trim', this.trim);
+      trimBtn.setAttribute('aria-pressed', String(this.trim));
+      this.recompute();
+      void this.renderPage();
     });
 
     const origBtn = this.q<HTMLButtonElement>('#original');
