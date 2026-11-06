@@ -1,10 +1,15 @@
 # PhoneReadr
 
-Pembaca PDF (PWA) untuk HP yang memotong margin kosong di keempat sisi, sehingga isi halaman
-tampil lebih besar. Layout dan gambar PDF tetap utuh: yang dipotong hanya ruang kosong.
-Semua diproses di perangkat, file tidak diunggah.
+Pembaca dokumen untuk HP (PWA). Semua diproses di perangkat, tanpa unggah ke server, dan bisa dipakai offline setelah dipasang.
 
-Spesifikasi lengkap: [docs/SPEC.md](docs/SPEC.md)
+**Dua cara membaca PDF** (bisa berganti kapan saja, posisi baca ikut terbawa):
+
+- **Halaman**: tata letak asli PDF, dengan margin kosong di keempat sisi dipotong otomatis sehingga isi tampil lebih besar. Layout dan gambar tidak berubah. Scroll vertikal kontinu, pinch-zoom, ketuk dua kali untuk zoom.
+- **Teks**: teks diambil dan disusun ulang (reflow) sesuai lebar layar, dengan ukuran huruf, tema, dan jarak yang bisa diatur, plus daftar isi.
+
+Juga membuka **EPUB, DOCX, Markdown, dan TXT** (mode teks). Daftar "Terakhir dibuka" mengingat posisi baca tiap dokumen.
+
+Spesifikasi: [docs/SPEC.md](docs/SPEC.md)
 
 ## Menjalankan
 
@@ -18,17 +23,25 @@ npm run preview    # coba hasil build
 
 ## Struktur
 
-- `src/crop/` — deteksi kotak konten dan agregasi crop (logika murni, teruji)
-- `src/pdf/` — pemuatan PDF per-range dan analisis halaman
-- `src/store/` — cache analisis (IndexedDB) dan preferensi
-- `src/viewer.ts` — scroll kontinu ber-crop (virtualisasi halaman), zoom/gestur, mode Aman/Agresif/Rapat
+- `src/crop/` deteksi kotak konten dan agregasi crop (mode halaman)
+- `src/viewer.ts` pembaca halaman: scroll kontinu, virtualisasi, zoom/gestur
+- `src/reflow/` reflow teks PDF dan parser EPUB/DOCX/Markdown/TXT (mode teks)
+- `src/text/` pembaca teks: pengaturan, tema, daftar isi
+- `src/lib/db.ts` perpustakaan dokumen (IndexedDB)
+- `src/pdf/` pemuatan PDF per-range dan analisis halaman
+- `src/main.ts` beranda, perpustakaan, dan perpindahan antar mode
 
-## Deploy (GitHub Pages)
+## Deploy (GitHub Pages dari branch)
 
-Workflow `.github/workflows/deploy.yml` menjalankan tes, build, dan deploy otomatis setiap push ke `main`.
+Pages repo ini disajikan dari branch `claude/iphone-pdf-reader-ucatys`. Untuk men-deploy:
 
-Pengaturan satu kali: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+```bash
+scripts/deploy-pages.sh
+```
 
-Alamat hasilnya: `https://<pemilik>.github.io/phonereadr/`. Buka di HP, lalu pilih "Tambahkan ke layar utama" untuk memasangnya sebagai aplikasi.
+Skrip membangun dengan base path `/phonereadr/`, mengganti isi root branch Pages, dan mempertahankan aplikasi PhoneReadr lama di `/phonereadr/legacy/` sebagai jalur rollback. Alamat `/phonereadr/next/` (alamat uji sebelumnya) dialihkan ke aplikasi utama.
 
-Build lokal dengan base path yang sama: `BASE_PATH=/phonereadr/ npm run build`.
+## Catatan kompatibilitas
+
+- Memakai build pdf.js "legacy" dan sintaks yang diturunkan agar jalan di Safari/iOS yang lebih lama. Kode sumber tidak memakai regex *lookbehind*, `Array.at`, dan sejenisnya. Belum diuji di iPhone sungguhan.
+- Perpustakaan memakai IndexedDB `phonereadr` (skema sama dengan aplikasi lama, sehingga daftar bacaan lama tetap terbaca) dan `phonereadr-files` untuk salinan PDF asli.

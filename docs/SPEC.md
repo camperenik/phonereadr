@@ -12,6 +12,24 @@ tetap merender halaman PDF asli; yang berubah hanya area yang ditampilkan (crop)
 3. **Privat.** Semua pemrosesan terjadi di perangkat; file tidak pernah diunggah.
 4. **Mampu file ratusan MB.** File dibaca per potongan (range), bukan dimuat utuh.
 
+## Aplikasi gabungan (PhoneReadr lama + pembaca crop)
+
+PhoneReadr lama (reflow teks; EPUB/DOCX/MD/TXT; perpustakaan offline) dan pembaca crop disatukan menjadi satu aplikasi.
+
+| Aspek | Keputusan |
+|---|---|
+| Bentuk | Satu aplikasi. PDF punya dua mode, **Halaman** (crop, layout asli) dan **Teks** (reflow), dengan tombol ganti; format lain hanya mode Teks |
+| Mode bawaan PDF | **Halaman** (tidak perlu ekstraksi teks di muka; juga bekerja untuk PDF scan). Mode terakhir diingat per dokumen |
+| Ekstraksi teks | Malas: baru dijalankan saat pertama kali pindah ke Teks (progres + tombol Batal), hasilnya disimpan di dokumen |
+| Posisi antar mode | Halaman N ↔ blok teks pertama dari halaman N (dan sebaliknya) |
+| Perangkat | Android dan iPhone. pdf.js build *legacy*, sintaks diturunkan (`safari14`), tanpa regex lookbehind. Belum diuji di iPhone sungguhan |
+| Penyimpanan | Record dokumen di IndexedDB `phonereadr` (skema sama dengan versi lama); PDF asli di `phonereadr-files` agar menyimpan posisi baca tidak menulis ulang file besar |
+| File tak muat disimpan | Dibaca dari file yang dipilih; bila ditutup, saat dibuka dari daftar pengguna diminta memilih file yang sama |
+| Data lama | Record lama tetap terbaca; PDF yang tersimpan di dalam record dimigrasikan ke `phonereadr-files` saat dibuka |
+| Alamat | Menggantikan aplikasi lama di `/phonereadr/`. Aplikasi lama tersimpan di `/phonereadr/legacy/` (rollback); `/phonereadr/next/` dialihkan |
+
+Kendali mode halaman (Aman/Agresif, Rapat, Asli) dipindah ke lembar pengaturan (⚙) agar bilah bawah tetap lega di layar sempit.
+
 ## Keputusan produk
 | Aspek | Keputusan |
 |---|---|

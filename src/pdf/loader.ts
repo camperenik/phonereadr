@@ -1,5 +1,6 @@
-import * as pdfjs from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// Build "legacy" pdf.js: berjalan di Safari/iOS yang lebih lama juga.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -11,7 +12,7 @@ const ASSET_BASE = `${import.meta.env.BASE_URL}pdfjs/`;
  */
 class FileRangeTransport extends pdfjs.PDFDataRangeTransport {
   constructor(
-    private readonly file: File,
+    private readonly file: Blob,
     initial: Uint8Array,
   ) {
     super(file.size, initial);
@@ -31,7 +32,7 @@ export interface LoadedPdf {
   name: string;
 }
 
-export async function loadPdf(file: File): Promise<LoadedPdf> {
+export async function loadPdf(file: Blob, name = 'dokumen.pdf'): Promise<LoadedPdf> {
   const initial = new Uint8Array(await file.slice(0, 64 * 1024).arrayBuffer());
   const task = pdfjs.getDocument({
     range: new FileRangeTransport(file, initial),
@@ -46,8 +47,8 @@ export async function loadPdf(file: File): Promise<LoadedPdf> {
     iccUrl: `${ASSET_BASE}iccs/`,
   } as Parameters<typeof pdfjs.getDocument>[0]);
   const doc = await task.promise;
-  const id = doc.fingerprints[0] ?? `${file.name}:${file.size}:${file.lastModified}`;
-  return { doc, id, name: file.name };
+  const id = doc.fingerprints[0] ?? `${name}:${file.size}`;
+  return { doc, id, name };
 }
 
-export type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+export type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs';

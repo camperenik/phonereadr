@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { PDFDocumentProxy } from './loader';
 import { detectContentBox } from '../crop/detect';
 import { samplePageIndices } from '../crop/aggregate';
 import type { Box, RawBoxes } from '../crop/types';

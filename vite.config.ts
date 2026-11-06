@@ -4,7 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Pages melayani dari subpath (/phonereadr/); di lokal tetap '/'.
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
-  build: { target: 'es2022' },
+  // Turunkan sintaks agar terbaca Safari/iOS yang lebih lama juga.
+  build: { target: ['es2020', 'safari14', 'chrome87'] },
   worker: { format: 'es' },
   plugins: [
     VitePWA({
@@ -16,12 +17,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,mjs,wasm,bcmap,pfb,ttf,icc,webmanifest}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: 'index.html',
+        // /legacy/ (aplikasi lama) dan /next/ (alamat uji lama) bukan bagian dari aplikasi ini.
+        navigateFallbackDenylist: [/\/legacy\//, /\/next\//],
       },
       manifest: {
         id: process.env.BASE_PATH ?? '/',
-        name: 'PhoneReadr Crop',
-        short_name: 'Readr Crop',
-        description: 'Pembaca PDF yang memotong margin tanpa mengubah layout.',
+        name: 'PhoneReadr',
+        short_name: 'PhoneReadr',
+        description: 'Baca PDF tanpa margin kosong atau sebagai teks yang disusun ulang; juga EPUB, DOCX, Markdown, TXT.',
         lang: 'id',
         display: 'standalone',
         orientation: 'any',

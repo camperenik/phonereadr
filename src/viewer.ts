@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
+import type { PDFDocumentProxy, RenderTask } from './pdf/loader';
 import { computeCrops, FULL_PAGE } from './crop/aggregate';
 import type { Box, CropMode, RawBoxes } from './crop/types';
 import { pageAtOffset } from './layout';
@@ -16,6 +16,13 @@ import {
 const MAX_CANVAS_PIXELS = 16_000_000;
 const PIXEL_BUDGET = 48_000_000;
 const DEFAULT_SIZE: [number, number] = [595, 842];
+
+export interface ViewerOptions {
+  /** Halaman awal (indeks 0). */
+  initialPage?: number;
+  /** Dipanggil saat halaman aktif berubah (indeks 0, total halaman). */
+  onPage?: (page: number, total: number) => void;
+}
 
 interface Slot {
   el: HTMLDivElement;
@@ -56,6 +63,11 @@ export class Viewer {
   private wheelTimer: ReturnType<typeof setTimeout> | undefined;
   private hintTimer: ReturnType<typeof setTimeout> | undefined;
   private abort = new AbortController();
+  /** Semua pendengar event diikat ke sinyal ini agar lepas saat destroy(). */
+  private readonly listeners = new AbortController();
+  private get sig(): AbortSignal {
+    return this.listeners.signal;
+  }
 
   private readonly scroller: HTMLElement;
   private readonly pages: HTMLElement;
@@ -68,6 +80,7 @@ export class Viewer {
     private readonly doc: PDFDocumentProxy,
     private readonly id: string,
     private readonly root: HTMLElement,
+    private readonly opts: ViewerOptions = {},
   ) {
     this.scroller = this.q('#scroller');
     this.pages = this.q('#pages');
@@ -77,7 +90,7 @@ export class Viewer {
     this.hint = this.q('#zoomhint');
     this.mode = getPref<CropMode>('mode', 'safe');
     this.trim = getPref<boolean>('trim', false);
-    this.current = Math.min(doc.numPages - 1, Math.max(0, getPref<number>(`page:${id}`, 0)));
+    this.current = Math.min(doc.numPages - 1, Math.max(0, opts.initialPage ?? 0));
   }
 
   private q<T extends Element>(sel: string): T {
@@ -110,6 +123,7 @@ export class Viewer {
     this.scroller.tabIndex = 0;
     this.scroller.focus({ preventScroll: true });
     this.refresh();
+    this.opts.onPage?.(this.current, n);
 
     void this.runAnalysis();
   }
@@ -117,6 +131,7 @@ export class Viewer {
   destroy(): void {
     this.destroyed = true;
     this.abort.abort();
+    this.listeners.abort();
     this.cur?.task.cancel();
     clearTimeout(this.layoutTimer);
     clearTimeout(this.wheelTimer);
@@ -129,23 +144,29 @@ export class Viewer {
 
   private async runAnalysis(): Promise<void> {
     let lastSave = 0;
-    await analyzeDocument(this.doc, this.raw, this.sizes, {
-      signal: this.abort.signal,
-      onPage: (_index, p) => {
-        this.status.textContent = p.done >= p.total ? '' : `Menganalisis ${p.done}/${p.total}`;
-        // Susun ulang tidak lebih sering dari tiap 400 ms agar scroll tetap halus.
-        if (!this.layoutTimer) {
-          this.layoutTimer = setTimeout(() => {
-            this.layoutTimer = undefined;
-            this.relayout();
-          }, 400);
-        }
-        if (Date.now() - lastSave > 3000) {
-          lastSave = Date.now();
-          void this.persist();
-        }
-      },
-    });
+    try {
+      await analyzeDocument(this.doc, this.raw, this.sizes, {
+        signal: this.abort.signal,
+        onPage: (_index, p) => {
+          this.status.textContent = p.done >= p.total ? '' : `Menganalisis ${p.done}/${p.total}`;
+          // Susun ulang tidak lebih sering dari tiap 400 ms agar scroll tetap halus.
+          if (!this.layoutTimer) {
+            this.layoutTimer = setTimeout(() => {
+              this.layoutTimer = undefined;
+              this.relayout();
+            }, 400);
+          }
+          if (Date.now() - lastSave > 3000) {
+            lastSave = Date.now();
+            void this.persist();
+          }
+        },
+      });
+    } catch (e) {
+      // Menutup dokumen di tengah analisis membatalkan render; itu normal.
+      if (!this.abort.signal.aborted) console.error(e);
+      return;
+    }
     if (this.abort.signal.aborted) return;
     this.status.textContent = '';
     clearTimeout(this.layoutTimer);
@@ -249,6 +270,11 @@ export class Viewer {
 
   // ---------- navigasi ----------
 
+  /** Indeks halaman (0) yang sedang dibaca. */
+  getPage(): number {
+    return this.current;
+  }
+
   goTo(index: number): void {
     const i = Math.min(this.slots.length - 1, Math.max(0, index));
     this.scroller.scrollTop = this.slots[i]!.el.offsetTop;
@@ -271,7 +297,7 @@ export class Viewer {
     const p = this.pageAt(el.scrollTop + el.clientHeight * 0.25);
     if (p !== this.current) {
       this.current = p;
-      setPref(`page:${this.id}`, p);
+      this.opts.onPage?.(p, this.slots.length);
     }
     if (document.activeElement !== this.pageInput) this.pageInput.value = String(p + 1);
     this.update();
@@ -440,14 +466,14 @@ export class Viewer {
   private bindUi(): void {
     const prev = () => this.goTo(this.current - 1);
     const next = () => this.goTo(this.current + 1);
-    this.q('#prev').addEventListener('click', prev);
-    this.q('#next').addEventListener('click', next);
+    this.q('#prev').addEventListener('click', prev, { signal: this.sig });
+    this.q('#next').addEventListener('click', next, { signal: this.sig });
     this.pageInput.addEventListener('change', () => {
       const n = Number(this.pageInput.value);
       if (Number.isFinite(n)) this.goTo(Math.round(n) - 1);
       this.pageInput.value = String(this.current + 1);
-    });
-    this.scroller.addEventListener('scroll', () => this.onScroll(), { passive: true });
+    }, { signal: this.sig });
+    this.scroller.addEventListener('scroll', () => this.onScroll(), { passive: true, signal: this.sig });
 
     const modeBtn = this.q<HTMLButtonElement>('#mode');
     const paintMode = () => {
@@ -460,7 +486,7 @@ export class Viewer {
       setPref('mode', this.mode);
       paintMode();
       this.relayout();
-    });
+    }, { signal: this.sig });
 
     const trimBtn = this.q<HTMLButtonElement>('#trim');
     trimBtn.setAttribute('aria-pressed', String(this.trim));
@@ -469,27 +495,27 @@ export class Viewer {
       setPref('trim', this.trim);
       trimBtn.setAttribute('aria-pressed', String(this.trim));
       this.relayout();
-    });
+    }, { signal: this.sig });
 
     const origBtn = this.q<HTMLButtonElement>('#original');
     origBtn.addEventListener('click', () => {
       this.original = !this.original;
       origBtn.setAttribute('aria-pressed', String(this.original));
       this.relayout();
-    });
+    }, { signal: this.sig });
 
     window.addEventListener('keydown', (e) => {
       if (this.destroyed || e.target instanceof HTMLInputElement) return;
       if (e.key === 'ArrowRight') next();
       else if (e.key === 'ArrowLeft') prev();
-    });
+    }, { signal: this.sig });
 
     window.addEventListener('resize', () => {
       const a = this.anchor();
       this.setWidth();
       this.restore(a);
       this.refresh();
-    });
+    }, { signal: this.sig });
 
     this.bindGestures();
     this.bindDesktopZoom();
@@ -562,7 +588,7 @@ export class Viewer {
           tap = { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY, moved: false };
         }
       },
-      { passive: true },
+      { passive: true, signal: this.sig },
     );
 
     el.addEventListener(
@@ -579,7 +605,7 @@ export class Viewer {
           if (Math.hypot(t.clientX - tap.x, t.clientY - tap.y) > 10) tap.moved = true;
         }
       },
-      { passive: false },
+      { passive: false, signal: this.sig },
     );
 
     el.addEventListener(
@@ -616,7 +642,7 @@ export class Viewer {
           lastTap = { t: now, x: t.clientX, y: t.clientY };
         }
       },
-      { passive: true },
+      { passive: true, signal: this.sig },
     );
   }
 
@@ -637,7 +663,7 @@ export class Viewer {
         clearTimeout(this.wheelTimer);
         this.wheelTimer = setTimeout(() => this.commitZoom(this.liveZoom), 180);
       },
-      { passive: false },
+      { passive: false, signal: this.sig },
     );
 
     window.addEventListener('keydown', (e) => {
@@ -652,6 +678,6 @@ export class Viewer {
       this.beginZoomGesture();
       this.applyLiveZoom(z, f.fx, f.fy, c.x, c.y);
       this.commitZoom(z);
-    });
+    }, { signal: this.sig });
   }
 }

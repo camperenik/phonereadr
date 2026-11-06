@@ -3,13 +3,101 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#111111" />
-    <title>PhoneReadr Crop</title>
+    <meta name="theme-color" content="#fbfaf7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="PhoneReadr" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>PhoneReadr</title>
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
-  <body>
-    <div id="app"></div>
+  <body data-theme="light">
+    <!-- Beranda + perpustakaan -->
+    <main id="home" class="view">
+      <header class="home-head">
+        <h1>PhoneReadr</h1>
+        <p>Baca PDF, EPUB, DOCX, Markdown, atau TXT. PDF bisa dibaca sebagai halaman asli tanpa margin kosong, atau sebagai teks yang disusun ulang sesuai layar.</p>
+      </header>
+      <label class="btn primary open">
+        Buka file
+        <input id="file" type="file" accept="application/pdf,.pdf,.txt,text/plain,.md,.markdown,text/markdown,.epub,application/epub+zip,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+      </label>
+      <input id="refile" type="file" accept="application/pdf,.pdf" hidden />
+      <div id="home-status" class="notice" role="status" hidden></div>
+      <h2 class="section">Terakhir dibuka</h2>
+      <ul id="recent" class="recent"></ul>
+      <p id="empty" class="muted">Belum ada. File diproses di perangkat ini dan tidak diunggah ke mana pun.</p>
+    </main>
+
+    <!-- Mode teks (reflow) -->
+    <section id="text-view" class="view" hidden>
+      <div id="topbar" class="bar top">
+        <button id="tv-back" aria-label="Kembali ke daftar">‹</button>
+        <div id="tv-title" class="title"></div>
+        <button id="toc-btn" aria-label="Daftar isi">☰</button>
+        <button id="to-page" class="label" aria-label="Lihat sebagai halaman asli">Halaman</button>
+        <button id="aa-btn" aria-label="Pengaturan teks">Aa</button>
+      </div>
+      <article id="text" tabindex="-1"></article>
+      <div id="botbar" class="bar bottom">
+        <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Posisi" />
+        <div id="pos" class="pos"></div>
+      </div>
+    </section>
+
+    <!-- Mode halaman (layout asli, di-crop, scroll kontinu) -->
+    <section id="page-view" class="pageview" hidden>
+      <div id="scroller" class="scroller"><div id="pages" class="pages"></div></div>
+      <div class="bar pbar" role="toolbar" aria-label="Kontrol baca">
+        <button id="pv-back" aria-label="Kembali ke daftar">‹</button>
+        <button id="prev" aria-label="Halaman sebelumnya">↑</button>
+        <span class="pager">
+          <input id="page-input" type="number" min="1" inputmode="numeric" aria-label="Nomor halaman" />
+          <span id="page-total"></span>
+        </span>
+        <button id="next" aria-label="Halaman berikutnya">↓</button>
+        <button id="to-text" class="label" aria-label="Lihat sebagai teks">Teks</button>
+        <button id="pv-opts" aria-label="Pengaturan halaman">⚙</button>
+      </div>
+      <div id="status" class="chip" role="status"></div>
+      <div id="zoomhint" class="chip hint-zoom" aria-live="polite"></div>
+    </section>
+
+    <!-- Pengaturan teks -->
+    <div id="sheet" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="row"><span>Ukuran huruf</span><div class="stepper"><button data-step="fontSize" data-d="-1">A−</button><b id="v-fontSize"></b><button data-step="fontSize" data-d="1">A+</button></div></div>
+        <div class="row"><span>Spasi baris</span><div class="stepper"><button data-step="lineHeight" data-d="-0.05">−</button><b id="v-lineHeight"></b><button data-step="lineHeight" data-d="0.05">+</button></div></div>
+        <div class="row"><span>Margin</span><div class="stepper"><button data-step="margin" data-d="-2">−</button><b id="v-margin"></b><button data-step="margin" data-d="2">+</button></div></div>
+        <div class="row"><span>Jarak paragraf</span><div class="stepper"><button data-step="paraGap" data-d="-0.1">−</button><b id="v-paraGap"></b><button data-step="paraGap" data-d="0.1">+</button></div></div>
+        <div class="row"><span>Huruf</span><div class="seg" data-key="font"><button data-v="serif">Serif</button><button data-v="sans">Sans</button><button data-v="rounded">Bulat</button></div></div>
+        <div class="row"><span>Tema</span><div class="seg" data-key="theme"><button data-v="light">Terang</button><button data-v="sepia">Sepia</button><button data-v="dark">Gelap</button></div></div>
+        <div class="row"><span>Rata</span><div class="seg" data-key="align"><button data-v="left">Kiri</button><button data-v="justify">Kiri-kanan</button></div></div>
+        <button id="sheet-close" class="btn">Selesai</button>
+      </div>
+    </div>
+
+    <!-- Daftar isi -->
+    <div id="toc" class="sheet" hidden>
+      <div class="sheet-body"><h2 class="section">Daftar isi</h2><ul id="toc-list" class="toc"></ul><button id="toc-close" class="btn">Tutup</button></div>
+    </div>
+
+    <!-- Pengaturan mode halaman -->
+    <div id="psheet" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="row"><span>Potong margin<small>Aman: header/footer tetap tampil. Agresif: diabaikan.</small></span><button id="mode" class="toggle">Aman</button></div>
+        <div class="row"><span>Rapat<small>Potong sisa kosong di bawah tiap halaman (paling terasa di mode Agresif).</small></span><button id="trim" class="toggle" aria-pressed="false">Rapat</button></div>
+        <div class="row"><span>Tampilkan asli<small>Tanpa crop, untuk membandingkan.</small></span><button id="original" class="toggle" aria-pressed="false">Asli</button></div>
+        <button id="psheet-close" class="btn">Selesai</button>
+      </div>
+    </div>
+
+    <!-- Penanda proses panjang (ekstraksi teks) -->
+    <div id="busy" class="sheet center" hidden>
+      <div class="sheet-body small"><p id="busy-msg"></p><button id="busy-cancel" class="btn">Batal</button></div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
