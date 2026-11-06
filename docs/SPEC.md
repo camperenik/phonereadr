@@ -22,7 +22,7 @@ PhoneReadr lama (reflow teks; EPUB/DOCX/MD/TXT; perpustakaan offline) dan pembac
 | Mode bawaan PDF | **Halaman** (tidak perlu ekstraksi teks di muka; juga bekerja untuk PDF scan). Mode terakhir diingat per dokumen |
 | Ekstraksi teks | Malas: baru dijalankan saat pertama kali pindah ke Teks (progres + tombol Batal), hasilnya disimpan di dokumen |
 | Posisi antar mode | Halaman N ↔ blok teks pertama dari halaman N (dan sebaliknya) |
-| Perangkat | Android dan iPhone. pdf.js build *legacy*, sintaks diturunkan (`safari14`), tanpa regex lookbehind. Belum diuji di iPhone sungguhan |
+| Perangkat | Android dan iPhone. pdf.js build *legacy*, sintaks diturunkan (`safari14`), tanpa regex lookbehind. Dikonfirmasi berjalan baik di iPhone oleh pengguna (uji manual; versi iOS tidak dicatat) |
 | Penyimpanan | Record dokumen di IndexedDB `phonereadr` (skema sama dengan versi lama); PDF asli di `phonereadr-files` agar menyimpan posisi baca tidak menulis ulang file besar |
 | File tak muat disimpan | Dibaca dari file yang dipilih; bila ditutup, saat dibuka dari daftar pengguna diminta memilih file yang sama |
 | Data lama | Record lama tetap terbaca; PDF yang tersimpan di dalam record dimigrasikan ke `phonereadr-files` saat dibuka |
@@ -90,7 +90,7 @@ Kendali mode halaman (Aman/Agresif, Rapat, Asli) dipindah ke lembar pengaturan (
 
 ## Batasan MVP yang diketahui
 - Zoom 1×–5×. Kanvas dibatasi 16 juta piksel, jadi pada zoom tinggi di halaman tinggi resolusinya turun (agak buram). Solusinya render per-tile (belum ada).
-- Gestur diuji lewat Chromium headless (multi-touch via CDP); belum diuji di iOS Safari maupun HP sungguhan.
+- Gestur diuji otomatis lewat Chromium headless (multi-touch via CDP). Pengguna mengonfirmasi aplikasi berjalan baik di iPhone; uji otomatis di WebKit dan uji file sangat besar di iOS belum dilakukan.
 - PDF scan: memakai deteksi piksel yang sama; scan miring, bayangan, atau tepi hitam scanner belum ditangani khusus.
 - PDF berproteksi sandi belum didukung.
 - Halaman pencilan menyebabkan skala teks berubah di halaman itu saja (konsekuensi dari "tidak memotong konten").

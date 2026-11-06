@@ -43,5 +43,5 @@ Skrip membangun dengan base path `/phonereadr/`, mengganti isi root branch Pages
 
 ## Catatan kompatibilitas
 
-- Memakai build pdf.js "legacy" dan sintaks yang diturunkan agar jalan di Safari/iOS yang lebih lama. Kode sumber tidak memakai regex *lookbehind*, `Array.at`, dan sejenisnya. Belum diuji di iPhone sungguhan.
+- Memakai build pdf.js "legacy" dan sintaks yang diturunkan agar jalan di Safari/iOS yang lebih lama. Kode sumber tidak memakai regex *lookbehind*, `Array.at`, dan sejenisnya. Dikonfirmasi berjalan baik di iPhone oleh pengguna (versi iOS dan file sangat besar belum dicatat/diuji).
 - Perpustakaan memakai IndexedDB `phonereadr` (skema sama dengan aplikasi lama, sehingga daftar bacaan lama tetap terbaca) dan `phonereadr-files` untuk salinan PDF asli.
