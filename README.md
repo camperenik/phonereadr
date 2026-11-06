@@ -22,3 +22,13 @@ npm run preview    # coba hasil build
 - `src/pdf/` — pemuatan PDF per-range dan analisis halaman
 - `src/store/` — cache analisis (IndexedDB) dan preferensi
 - `src/viewer.ts` — render ber-crop, navigasi swipe, mode Aman/Agresif
+
+## Deploy (GitHub Pages)
+
+Workflow `.github/workflows/deploy.yml` menjalankan tes, build, dan deploy otomatis setiap push ke `main`.
+
+Pengaturan satu kali: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Alamat hasilnya: `https://<pemilik>.github.io/phonereadr/`. Buka di HP, lalu pilih "Tambahkan ke layar utama" untuk memasangnya sebagai aplikasi.
+
+Build lokal dengan base path yang sama: `BASE_PATH=/phonereadr/ npm run build`.

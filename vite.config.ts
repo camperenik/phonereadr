@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Pages melayani dari subpath (/phonereadr/); di lokal tetap '/'.
 export default defineConfig({
+  base: process.env.BASE_PATH ?? '/',
   build: { target: 'es2022' },
   worker: { format: 'es' },
   plugins: [
